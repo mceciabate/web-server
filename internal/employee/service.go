@@ -7,6 +7,7 @@ type ServiceE interface {
 	GetByID(id int) (domain.Employee, error)
 	Create(e domain.Employee) (domain.Employee, error)
 	Update(id int, e domain.Employee) (domain.Employee, error)
+	Delete(id int) error
 }
 
 type serviceE struct {
@@ -54,4 +55,13 @@ func (s *serviceE) Update(id int, e domain.Employee) (domain.Employee, error) {
 		return domain.Employee{}, err
 	}
 	return e, nil
+}
+
+// Delete elimina un producto
+func (s *serviceE) Delete(id int) error {
+	err := s.r.Delete(id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

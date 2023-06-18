@@ -3,6 +3,7 @@ package employeeHandler
 import (
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -30,7 +31,7 @@ func (h *employeeHandler) GetAll() gin.HandlerFunc {
 	}
 }
 
-// GetByID obtiene un producto por su id
+// GetByID obtiene un empleado por su id
 func (h *employeeHandler) GetByID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idParam := c.Param("id")
@@ -120,5 +121,75 @@ func (h *employeeHandler) Put() gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, e)
+	}
+}
+
+// Delete elimina un empleado
+func (h *employeeHandler) Delete() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		token := ctx.GetHeader("TOKEN")
+		if token != os.Getenv("TOKEN") {
+			ctx.JSON(http.StatusUnauthorized, gin.H{
+				"error": "token invalido",
+			})
+			return
+		}
+		idParam := ctx.Param("id")
+		id, err := strconv.Atoi(idParam)
+		if err != nil {
+			ctx.JSON(400, gin.H{"error": "invalid id"})
+			return
+		}
+		err = h.s.Delete(id)
+		if err != nil {
+			ctx.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(200, gin.H{"message": "product deleted"})
+	}
+}
+
+// Patch update selected fields of a product WIP
+func (h *employeeHandler) Patch() gin.HandlerFunc {
+	type Request struct {
+		Name   string `json:"name,omitempty"`
+		Active bool   `json:"is_active,omitempty"`
+	}
+	return func(ctx *gin.Context) {
+		token := ctx.GetHeader("TOKEN")
+		if token != os.Getenv("TOKEN") {
+			ctx.JSON(http.StatusUnauthorized, gin.H{
+				"error": "token invalido",
+			})
+			return
+		}
+		var r Request
+		idParam := ctx.Param("id")
+		id, err := strconv.Atoi(idParam)
+		if err != nil {
+			ctx.JSON(400, gin.H{"error": "invalid id"})
+			return
+		}
+		if err := ctx.ShouldBindJSON(&r); err != nil {
+			ctx.JSON(400, gin.H{"error": "invalid request"})
+			return
+		}
+		update := domain.Employee{
+			Name:   r.Name,
+			Active: r.Active,
+		}
+		if update.Name != "" {
+			valid, err := validateEmptys(&update)
+			if !valid {
+				ctx.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+		}
+		e, err := h.s.Update(id, update)
+		if err != nil {
+			ctx.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(200, e)
 	}
 }

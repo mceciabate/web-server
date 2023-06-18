@@ -48,6 +48,7 @@ func main() {
 		employees.GET(":id", employeeHandler.GetByID())
 		employees.POST("", employeeHandler.Post())
 		employees.PUT(":id", employeeHandler.Put())
+		employees.DELETE(":id", employeeHandler.Delete())
 	}
 
 	r.Run(":8080")

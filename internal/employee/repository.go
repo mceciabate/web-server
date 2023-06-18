@@ -11,6 +11,7 @@ type RepositoryE interface {
 	GetByID(id int) (domain.Employee, error)
 	Create(p domain.Employee) (domain.Employee, error)
 	Update(p domain.Employee) error
+	Delete(id int) error
 }
 
 type repositoryE struct {
@@ -54,4 +55,15 @@ func (r *repositoryE) Update(e domain.Employee) error {
 		}
 	}
 	return errors.New("employee not found")
+}
+
+// Delete elimina un employee
+func (r *repositoryE) Delete(id int) error {
+	for i, e := range r.listEmployee {
+		if e.Id == id {
+			r.listEmployee = append(r.listEmployee[:i], r.listEmployee[i+1:]...)
+			return nil
+		}
+	}
+	return errors.New("product not found")
 }
