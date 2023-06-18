@@ -22,7 +22,7 @@ func main() {
 	serviceP := product.NewService(repoP)
 	productHandler := productHandler.NewProductHandler(serviceP)
 
-	//Instancio el repo y el service para productos
+	//Instancio el repo y el service para employees
 	repoE := employee.NewRepository(employeesList)
 	serviceE := employee.NewService(repoE)
 	employeeHandler := employeeHandler.NewEmployeeHandler(serviceE)
@@ -39,6 +39,8 @@ func main() {
 		products.GET("/search", productHandler.Search())
 		products.POST("", productHandler.Post())
 		products.PUT(":id", productHandler.Put())
+		products.DELETE(":id", productHandler.Delete())
+		products.PATCH(":id", productHandler.Patch())
 	}
 	employees := r.Group("/employees")
 	{
@@ -46,7 +48,6 @@ func main() {
 		employees.GET(":id", employeeHandler.GetByID())
 		employees.POST("", employeeHandler.Post())
 		employees.PUT(":id", employeeHandler.Put())
-
 	}
 
 	r.Run(":8080")

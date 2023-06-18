@@ -3,6 +3,7 @@ package productHandler
 import (
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -105,33 +106,47 @@ func validateExpiration(product *domain.Product) (bool, error) {
 
 // Post crear un producto nuevo
 func (h *productHandler) Post() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
+	return func(c *gin.Context) {
+		token := c.GetHeader("TOKEN")
+		if token != os.Getenv("TOKEN") {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "token invalido",
+			})
+			return
+		}
 		var product domain.Product
-		err := ctx.ShouldBindJSON(&product)
+		err := c.ShouldBindJSON(&product)
 		if err != nil {
-			ctx.JSON(400, gin.H{"error": "invalid product"})
+			c.JSON(400, gin.H{"error": "invalid product"})
 			return
 		}
 		valid, err := validateEmptys(&product)
 		if !valid {
-			ctx.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
 		valid, err = validateExpiration(&product)
 		if !valid {
-			ctx.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
 		p, err := h.s.Create(product)
 		if err != nil {
-			ctx.JSON(400, gin.H{"error": err.Error()})
+			c.JSON(400, gin.H{"error": err.Error()})
 			return
 		}
-		ctx.JSON(201, p)
+		c.JSON(201, p)
 	}
 }
 func (h *productHandler) Put() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		token := c.GetHeader("TOKEN")
+		if token != os.Getenv("TOKEN") {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "token invalido",
+			})
+			return
+		}
 		idParam := c.Param("id")
 		id, err := strconv.Atoi(idParam)
 		if err != nil {
@@ -179,5 +194,83 @@ func (h *productHandler) Put() gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, p)
+	}
+}
+
+// Delete elimina un producto
+func (h *productHandler) Delete() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		token := ctx.GetHeader("TOKEN")
+		if token != os.Getenv("TOKEN") {
+			ctx.JSON(http.StatusUnauthorized, gin.H{
+				"error": "token invalido",
+			})
+			return
+		}
+		idParam := ctx.Param("id")
+		id, err := strconv.Atoi(idParam)
+		if err != nil {
+			ctx.JSON(400, gin.H{"error": "invalid id"})
+			return
+		}
+		err = h.s.Delete(id)
+		if err != nil {
+			ctx.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(200, gin.H{"message": "product deleted"})
+	}
+}
+
+// Patch update selected fields of a product WIP
+func (h *productHandler) Patch() gin.HandlerFunc {
+	type Request struct {
+		Name        string  `json:"name,omitempty"`
+		Quantity    int     `json:"quantity,omitempty"`
+		CodeValue   string  `json:"code_value,omitempty"`
+		IsPublished bool    `json:"is_published,omitempty"`
+		Expiration  string  `json:"expiration,omitempty"`
+		Price       float64 `json:"price,omitempty"`
+	}
+	return func(ctx *gin.Context) {
+		token := ctx.GetHeader("TOKEN")
+		if token != os.Getenv("TOKEN") {
+			ctx.JSON(http.StatusUnauthorized, gin.H{
+				"error": "token invalido",
+			})
+			return
+		}
+		var r Request
+		idParam := ctx.Param("id")
+		id, err := strconv.Atoi(idParam)
+		if err != nil {
+			ctx.JSON(400, gin.H{"error": "invalid id"})
+			return
+		}
+		if err := ctx.ShouldBindJSON(&r); err != nil {
+			ctx.JSON(400, gin.H{"error": "invalid request"})
+			return
+		}
+		update := domain.Product{
+			Name:        r.Name,
+			Quantity:    r.Quantity,
+			CodeValue:   r.CodeValue,
+			IsPublished: r.IsPublished,
+			Expiration:  r.Expiration,
+			Price:       r.Price,
+		}
+		if update.Expiration != "" {
+			valid, err := validateExpiration(&update)
+			if !valid {
+				ctx.JSON(400, gin.H{"error": err.Error()})
+				return
+			}
+		}
+		p, err := h.s.Update(id, update)
+		if err != nil {
+			ctx.JSON(500, gin.H{"error": err.Error()})
+			return
+		}
+		ctx.JSON(200, p)
 	}
 }
