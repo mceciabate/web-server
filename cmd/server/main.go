@@ -13,6 +13,7 @@ import (
 	"github.com/mceciabate/web-server/internal/domain"
 	"github.com/mceciabate/web-server/internal/employee"
 	"github.com/mceciabate/web-server/internal/product"
+	"github.com/mceciabate/web-server/pkg/store"
 )
 
 func main() {
@@ -20,20 +21,24 @@ func main() {
 	if err := godotenv.Load(".env"); err != nil {
 		log.Fatal(err)
 	}
+	storage := store.NewStore("../data/products.json")
 
-	var productsList = []domain.Product{}
-	//Consigna imprimir productos
-	fmt.Println(productsList)
-	loadProducts("../data/products.json", &productsList)
+	/* 	var productsList = []domain.Product{}
+	   	Consigna imprimir productos
+	   	fmt.Println(productsList)
+	   	loadProducts("../data/products.json", &productsList) */
+
 	var employeesList = []domain.Employee{}
 	//Consigna imprimir empleados
 	fmt.Println(employeesList)
 	loadEmployees("../data/employees.csv", &employeesList)
+
 	//Instancio el repo y el service para productos
-	repoP := product.NewRepository(productsList)
+	repoP := product.NewRepository(storage)
 	serviceP := product.NewService(repoP)
 	productHandler := productHandler.NewProductHandler(serviceP)
 
+	//TODO STORAGE PARA EMPLEADOS
 	//Instancio el repo y el service para employees
 	repoE := employee.NewRepository(employeesList)
 	serviceE := employee.NewService(repoE)

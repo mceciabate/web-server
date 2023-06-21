@@ -109,7 +109,7 @@ func (r *repository) Delete(id int) error {
 
 // Setea la cantidad de prodcuto según la compra
 func (r *repository) Buy(code string, quantity int) error {
-	err := s.storage.Buy(code, quantity)
+	err := r.storage.Buy(code, quantity)
 	if err != nil {
 		return err
 	}

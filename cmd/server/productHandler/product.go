@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mceciabate/web-server/internal/domain"
 	"github.com/mceciabate/web-server/internal/product"
+	"github.com/mceciabate/web-server/pkg/web"
 )
 
 type productHandler struct {
@@ -27,7 +28,7 @@ func NewProductHandler(s product.Service) *productHandler {
 func (h *productHandler) GetAll() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		products, _ := h.s.GetAll()
-		c.JSON(200, products)
+		web.Success(c, 200, products)
 	}
 }
 
@@ -45,7 +46,7 @@ func (h *productHandler) GetByID() gin.HandlerFunc {
 			c.JSON(404, gin.H{"error": "product not found"})
 			return
 		}
-		c.JSON(200, product)
+		web.Success(c, 200, product)
 	}
 }
 
@@ -63,7 +64,7 @@ func (h *productHandler) Search() gin.HandlerFunc {
 			c.JSON(404, gin.H{"error": "no products found"})
 			return
 		}
-		c.JSON(200, products)
+		web.Success(c, 200, products)
 	}
 }
 
@@ -109,92 +110,97 @@ func validateExpiration(product *domain.Product) (bool, error) {
 func (h *productHandler) Post() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("TOKEN")
+		if token == "" {
+			web.Failure(c, 401, errors.New("token not found"))
+			return
+		}
 		if token != os.Getenv("TOKEN") {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "token invalido",
-			})
+			web.Failure(c, 401, errors.New("invalid token"))
 			return
 		}
 		var product domain.Product
 		err := c.ShouldBindJSON(&product)
 		if err != nil {
-			c.JSON(400, gin.H{"error": "invalid product"})
+			web.Failure(c, 400, errors.New("invalid product"))
 			return
 		}
 		valid, err := validateEmptys(&product)
 		if !valid {
-			c.JSON(400, gin.H{"error": err.Error()})
+			web.Failure(c, 400, err)
 			return
 		}
 		valid, err = validateExpiration(&product)
 		if !valid {
-			c.JSON(400, gin.H{"error": err.Error()})
+			web.Failure(c, 400, err)
 			return
 		}
 		p, err := h.s.Create(product)
 		if err != nil {
-			c.JSON(400, gin.H{"error": err.Error()})
+			web.Failure(c, 400, err)
 			return
 		}
-		c.JSON(201, p)
+		web.Success(c, 201, p)
 	}
 }
 func (h *productHandler) Put() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("TOKEN")
+		if token == "" {
+			web.Failure(c, 401, errors.New("token not found"))
+			return
+		}
 		if token != os.Getenv("TOKEN") {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "token invalido",
-			})
+			web.Failure(c, 401, errors.New("invalid token"))
 			return
 		}
 		idParam := c.Param("id")
 		id, err := strconv.Atoi(idParam)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "invalid id",
-			})
+			web.Failure(c, 400, errors.New("invalid id"))
+			return
+		}
+		_, err = h.s.GetByID(id)
+		if err != nil {
+			web.Failure(c, 404, errors.New("product not found"))
+			return
+		}
+		if err != nil {
+			web.Failure(c, 409, err)
 			return
 		}
 		var product domain.Product
 		err = c.ShouldBindJSON(&product)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "invalid body",
-			})
+			web.Failure(c, 400, errors.New("invalid body"))
 			return
 		}
 		valid, err := validateEmptys(&product)
 		if !valid {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err,
-			})
+			web.Failure(c, 400, err)
 			return
 		}
 		valid, err = validateExpiration(&product)
 		if !valid {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": err,
-			})
+			web.Failure(c, 400, err)
 			return
 		}
 
 		p, err := h.s.Update(id, product)
-		if err != nil {
-			if strings.Contains(err.Error(), "not found") {
-				c.JSON(http.StatusNotFound, gin.H{
-					"error": err,
-				})
-				return
-			}
+		// if err != nil {
+		// 	if strings.Contains(err.Error(), "not found") {
+		// 		c.JSON(http.StatusNotFound, gin.H{
+		// 			"error": err,
+		// 		})
+		// 		return
+		// 	}
 
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": err,
-			})
-			return
-		}
+		// 	c.JSON(http.StatusInternalServerError, gin.H{
+		// 		"error": err,
+		// 	})
+		// 	return
+		// }
 
-		c.JSON(http.StatusOK, p)
+		web.Success(c, 200, p)
 	}
 }
 
@@ -202,10 +208,12 @@ func (h *productHandler) Put() gin.HandlerFunc {
 func (h *productHandler) Delete() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		token := ctx.GetHeader("TOKEN")
+		if token == "" {
+			web.Failure(ctx, 401, errors.New("token not found"))
+			return
+		}
 		if token != os.Getenv("TOKEN") {
-			ctx.JSON(http.StatusUnauthorized, gin.H{
-				"error": "token invalido",
-			})
+			web.Failure(ctx, 401, errors.New("invalid token"))
 			return
 		}
 		idParam := ctx.Param("id")
@@ -216,10 +224,10 @@ func (h *productHandler) Delete() gin.HandlerFunc {
 		}
 		err = h.s.Delete(id)
 		if err != nil {
-			ctx.JSON(500, gin.H{"error": err.Error()})
+			web.Failure(ctx, 404, err)
 			return
 		}
-		ctx.JSON(200, gin.H{"message": "product deleted"})
+		web.Success(ctx, 204, "product deleted")
 	}
 }
 
