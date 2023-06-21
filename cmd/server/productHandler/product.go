@@ -104,6 +104,7 @@ func validateExpiration(product *domain.Product) (bool, error) {
 	return true, nil
 }
 
+// TODO is_active: Ningún dato puede estar vacío, exceptuando is_published (vacío indica un valor false).
 // Post crear un producto nuevo
 func (h *productHandler) Post() gin.HandlerFunc {
 	return func(c *gin.Context) {

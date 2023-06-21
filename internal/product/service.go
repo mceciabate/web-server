@@ -92,6 +92,7 @@ func (s *service) Buy(code string, quantity int) error {
 	return nil
 }
 
+// Devuelve un producto por code_value
 func (s *service) GetByCodeValue(code string) (domain.Product, error) {
 	p, e := s.r.GetByCodeValue(code)
 	if e != nil {

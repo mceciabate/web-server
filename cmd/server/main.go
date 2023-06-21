@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/mceciabate/web-server/cmd/server/employeeHandler"
 	"github.com/mceciabate/web-server/cmd/server/productHandler"
 	"github.com/mceciabate/web-server/internal/domain"
@@ -14,6 +16,11 @@ import (
 )
 
 func main() {
+	//CARGAR LAS VARIABLES DE ENTORNO
+	if err := godotenv.Load(".env"); err != nil {
+		log.Fatal(err)
+	}
+
 	var productsList = []domain.Product{}
 	//Consigna imprimir productos
 	fmt.Println(productsList)
@@ -46,6 +53,7 @@ func main() {
 		products.PUT(":id", productHandler.Put())
 		products.DELETE(":id", productHandler.Delete())
 		products.PATCH(":id", productHandler.Patch())
+		products.GET("/buy", productHandler.Buy())
 	}
 	employees := r.Group("/employees")
 	{
