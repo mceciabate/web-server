@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/mceciabate/web-server/internal/domain"
+	"github.com/mceciabate/web-server/pkg/store"
 )
 
 type Repository interface {
@@ -18,47 +19,44 @@ type Repository interface {
 }
 
 type repository struct {
-	list []domain.Product
+	storage store.Store
 }
 
 // NewRepository crea un nuevo repositorio
-func NewRepository(list []domain.Product) Repository {
-	return &repository{list}
+func NewRepository(storage store.Store) Repository {
+	return &repository{storage}
 }
 
 // GetAll devuelve todos los productos
 func (r *repository) GetAll() []domain.Product {
-	return r.list
+	products, err := r.storage.GetAll()
+	if err != nil {
+		return []domain.Product{}
+	}
+	return products
 }
 
 // GetByID busca un producto por su id
 func (r *repository) GetByID(id int) (domain.Product, error) {
-	for _, product := range r.list {
-		if product.Id == id {
-			return product, nil
-		}
+	product, err := r.storage.GetByID(id)
+	if err != nil {
+		return domain.Product{}, err
 	}
-	return domain.Product{}, errors.New("product not found")
+	return product, nil
 
 }
 
 func (r *repository) GetByCodeValue(code string) (domain.Product, error) {
-	for _, p := range r.list {
-		if p.CodeValue == code {
-			return p, nil
-		}
+	product, err := r.storage.GetByCodeValue(code)
+	if err != nil {
+		return domain.Product{}, err
 	}
-	return domain.Product{}, errors.New("Product Not Found")
+	return product, nil
 }
 
 // SearchPriceGt busca productos por precio mayor o igual que el precio dado
 func (r *repository) SearchPriceGt(price float64) []domain.Product {
-	var products []domain.Product
-	for _, product := range r.list {
-		if product.Price > price {
-			products = append(products, product)
-		}
-	}
+	products := r.storage.SearchPriceGt(price)
 	return products
 }
 
@@ -67,30 +65,32 @@ func (r *repository) Create(p domain.Product) (domain.Product, error) {
 	if !r.validateCodeValue(p.CodeValue) {
 		return domain.Product{}, errors.New("code value already exists")
 	}
-	p.Id = len(r.list) + 1
-	r.list = append(r.list, p)
+	err := r.storage.Create(p)
+	if err != nil {
+		return domain.Product{}, errors.New("error creating product")
+	}
 	return p, nil
 }
 
 // Actualizar un producto
 func (r *repository) Update(p domain.Product) error {
 	if !r.validateCodeValue(p.CodeValue) {
-		return errors.New("code value already exist")
+		errors.New("code value already exists")
 	}
-
-	for i, prod := range r.list {
-		if p.Id == prod.Id {
-			r.list[i] = p
-			return nil
-		}
+	err := r.storage.Update(p)
+	if err != nil {
+		errors.New("error updating product")
 	}
-
-	return errors.New("product not found")
+	return nil
 }
 
 // validateCodeValue valida que el codigo no exista en la lista de productos
 func (r *repository) validateCodeValue(codeValue string) bool {
-	for _, product := range r.list {
+	list, err := r.storage.GetAll()
+	if err != nil {
+		return false
+	}
+	for _, product := range list {
 		if product.CodeValue == codeValue {
 			return false
 		}
@@ -100,24 +100,18 @@ func (r *repository) validateCodeValue(codeValue string) bool {
 
 // Delete elimina un producto
 func (r *repository) Delete(id int) error {
-	for i, product := range r.list {
-		if product.Id == id {
-			r.list = append(r.list[:i], r.list[i+1:]...)
-			return nil
-		}
+	err := r.storage.Delete(id)
+	if err != nil {
+		return err
 	}
-	return errors.New("product not found")
+	return nil
 }
 
 // Setea la cantidad de prodcuto según la compra
 func (r *repository) Buy(code string, quantity int) error {
-	productForBuy, err := r.GetByCodeValue(code)
+	err := s.storage.Buy(code, quantity)
 	if err != nil {
 		return err
 	}
-	if productForBuy.Quantity < quantity {
-		return errors.New("Cantidad insuficiente")
-	}
-	productForBuy.Quantity -= quantity
 	return nil
 }
