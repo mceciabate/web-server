@@ -12,6 +12,7 @@ type RepositoryE interface {
 	Create(p domain.Employee) (domain.Employee, error)
 	Update(p domain.Employee) error
 	Delete(id int) error
+	FilterActive() ([]domain.Employee, error)
 }
 
 type repositoryE struct {
@@ -66,4 +67,18 @@ func (r *repositoryE) Delete(id int) error {
 		}
 	}
 	return errors.New("product not found")
+}
+
+func (r repositoryE) FilterActive() ([]domain.Employee, error) {
+	var employees []domain.Employee
+	for _, e := range r.listEmployee {
+		if e.Active == true {
+			employees = append(employees, e)
+		}
+
+	}
+	if len(employees) == 0 {
+		return nil, errors.New("No matches for active")
+	}
+	return employees, nil
 }

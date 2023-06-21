@@ -8,6 +8,7 @@ type ServiceE interface {
 	Create(e domain.Employee) (domain.Employee, error)
 	Update(id int, e domain.Employee) (domain.Employee, error)
 	Delete(id int) error
+	FilterActive() ([]domain.Employee, error)
 }
 
 type serviceE struct {
@@ -64,4 +65,12 @@ func (s *serviceE) Delete(id int) error {
 		return err
 	}
 	return nil
+}
+
+func (s serviceE) FilterActive() ([]domain.Employee, error) {
+	lE, err := s.r.FilterActive()
+	if err != nil {
+		return nil, err
+	}
+	return lE, nil
 }

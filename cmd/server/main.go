@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -14,8 +15,12 @@ import (
 
 func main() {
 	var productsList = []domain.Product{}
+	//Consigna imprimir productos
+	fmt.Println(productsList)
 	loadProducts("../data/products.json", &productsList)
 	var employeesList = []domain.Employee{}
+	//Consigna imprimir empleados
+	fmt.Println(employeesList)
 	loadEmployees("../data/employees.csv", &employeesList)
 	//Instancio el repo y el service para productos
 	repoP := product.NewRepository(productsList)
@@ -46,6 +51,7 @@ func main() {
 	{
 		employees.GET("", employeeHandler.GetAll())
 		employees.GET(":id", employeeHandler.GetByID())
+		employees.GET("/actives", employeeHandler.GetActives())
 		employees.POST("", employeeHandler.Post())
 		employees.PUT(":id", employeeHandler.Put())
 		employees.DELETE(":id", employeeHandler.Delete())

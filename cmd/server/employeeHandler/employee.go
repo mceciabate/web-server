@@ -193,3 +193,13 @@ func (h *employeeHandler) Patch() gin.HandlerFunc {
 		ctx.JSON(200, e)
 	}
 }
+
+//Filtrar empleados activos
+
+func (h *employeeHandler) GetActives() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		employees, _ := h.s.FilterActive()
+		ctx.JSON(200, employees)
+
+	}
+}
