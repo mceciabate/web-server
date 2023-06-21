@@ -274,3 +274,43 @@ func (h *productHandler) Patch() gin.HandlerFunc {
 		ctx.JSON(200, p)
 	}
 }
+
+// Buy comprar producto
+func (h *productHandler) Buy() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.GetHeader("TOKEN")
+		if token != os.Getenv("TOKEN") {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "token invalido",
+			})
+			return
+		}
+		code := c.Query("code_value")
+		cant, err := strconv.ParseUint(c.Query("quantity"), 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid Quantity",
+			})
+			return
+		}
+		err = h.s.Buy(code, int(cant))
+		if err != nil {
+			c.JSON(400, gin.H{"error": err.Error()})
+			return
+		}
+		p, e := h.s.GetByCodeValue(code)
+		if e != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": e,
+			})
+			return
+		}
+		response := domain.Purchase{
+			CodeValue:  code,
+			Quantity:   int(cant),
+			TotalPrice: p.Price * float64(cant),
+		}
+		c.JSON(201, response)
+	}
+
+}

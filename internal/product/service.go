@@ -13,6 +13,8 @@ type Service interface {
 	Create(p domain.Product) (domain.Product, error)
 	Update(id int, p domain.Product) (domain.Product, error)
 	Delete(id int) error
+	Buy(code string, quantity int) error
+	GetByCodeValue(code string) (domain.Product, error)
 }
 
 type service struct {
@@ -79,4 +81,21 @@ func (s *service) Delete(id int) error {
 		return err
 	}
 	return nil
+}
+
+// Buy compra un product
+func (s *service) Buy(code string, quantity int) error {
+	err := s.r.Buy(code, quantity)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *service) GetByCodeValue(code string) (domain.Product, error) {
+	p, e := s.r.GetByCodeValue(code)
+	if e != nil {
+		return domain.Product{}, e
+	}
+	return p, nil
 }
